@@ -308,7 +308,7 @@ final class SyncIO[+A] private (val toIO: IO[A]) {
   }
 }
 
-object SyncIO extends SyncIOLowPriorityInstances {
+object SyncIO extends SyncIOInstances {
 
   /**
    * Suspends a synchronous side effect in `SyncIO`.
@@ -372,36 +372,59 @@ object SyncIO extends SyncIOLowPriorityInstances {
    * the throwable if it exists.
    */
   def fromEither[A](e: Either[Throwable, A]): SyncIO[A] = new SyncIO(IO.fromEither(e))
+}
 
-  implicit val syncIOSync: Sync[SyncIO] = new Sync[SyncIO] with StackSafeMonad[SyncIO] {
-    def pure[A](x: A): SyncIO[A] = SyncIO.pure(x)
+private[effect] abstract class SyncIOInstances extends SyncIOLowPriorityInstances {
+  implicit val syncIoSync: Sync[SyncIO] = new Sync[SyncIO] with StackSafeMonad[SyncIO] {
+    final override def pure[A](a: A): SyncIO[A] =
+      SyncIO.pure(a)
+    final override def unit: SyncIO[Unit] =
+      SyncIO.unit
 
-    def handleErrorWith[A](fa: SyncIO[A])(f: Throwable => SyncIO[A]): SyncIO[A] =
-      fa.handleErrorWith(f)
+    final override def map[A, B](fa: SyncIO[A])(f: A => B): SyncIO[B] =
+      fa.map(f)
+    final override def flatMap[A, B](ioa: SyncIO[A])(f: A => SyncIO[B]): SyncIO[B] =
+      ioa.flatMap(f)
 
-    def raiseError[A](e: Throwable): SyncIO[A] =
+    final override def attempt[A](ioa: SyncIO[A]): SyncIO[Either[Throwable, A]] =
+      ioa.attempt
+    final override def handleErrorWith[A](ioa: SyncIO[A])(f: Throwable => SyncIO[A]): SyncIO[A] =
+      ioa.handleErrorWith(f)
+    final override def raiseError[A](e: Throwable): SyncIO[A] =
       SyncIO.raiseError(e)
 
-    def bracketCase[A, B](acquire: SyncIO[A])(use: A => SyncIO[B])(release: (A, ExitCase[Throwable]) => SyncIO[Unit]): SyncIO[B] =
+    final override def bracket[A, B](acquire: SyncIO[A])
+      (use: A => SyncIO[B])
+      (release: A => SyncIO[Unit]): SyncIO[B] =
+      acquire.bracket(use)(release)
+
+    final override def uncancelable[A](task: SyncIO[A]): SyncIO[A] =
+      task
+
+    final override def bracketCase[A, B](acquire: SyncIO[A])
+      (use: A => SyncIO[B])
+      (release: (A, ExitCase[Throwable]) => SyncIO[Unit]): SyncIO[B] =
       acquire.bracketCase(use)(release)
 
-    def flatMap[A, B](fa: SyncIO[A])(f: A => SyncIO[B]): SyncIO[B] =
-      fa.flatMap(f)
+    final override def guarantee[A](fa: SyncIO[A])(finalizer: SyncIO[Unit]): SyncIO[A] =
+      fa.guarantee(finalizer)
+    final override def guaranteeCase[A](fa: SyncIO[A])(finalizer: ExitCase[Throwable] => SyncIO[Unit]): SyncIO[A] =
+      fa.guaranteeCase(finalizer)
 
-    def suspend[A](thunk: => SyncIO[A]): SyncIO[A] =
+    final override def delay[A](thunk: => A): SyncIO[A] =
+      SyncIO(thunk)
+    final override def suspend[A](thunk: => SyncIO[A]): SyncIO[A] =
       SyncIO.suspend(thunk)
-
   }
 
-  implicit def syncioMonoid[A: Monoid]: Monoid[SyncIO[A]] = new SyncIOSemigroup[A] with Monoid[SyncIO[A]] {
+  implicit def syncIoMonoid[A: Monoid]: Monoid[SyncIO[A]] = new SyncIOSemigroup[A] with Monoid[SyncIO[A]] {
     def empty: SyncIO[A] = SyncIO.pure(Monoid[A].empty)
   }
 
-  implicit val syncioSemigroupK: SemigroupK[SyncIO] = new SemigroupK[SyncIO] {
+  implicit val syncIoSemigroupK: SemigroupK[SyncIO] = new SemigroupK[SyncIO] {
     final override def combineK[A](a: SyncIO[A], b: SyncIO[A]): SyncIO[A] =
-      ApplicativeError[SyncIO, Throwable].handleErrorWith(a)(_ => b)
+      a.handleErrorWith(_ => b)
   }
-
 }
 
 private[effect] abstract class SyncIOLowPriorityInstances {
@@ -410,5 +433,5 @@ private[effect] abstract class SyncIOLowPriorityInstances {
       sioa1.flatMap(a1 => sioa2.map(a2 => Semigroup[A].combine(a1, a2)))
   }
 
-  implicit def syncioSemigroup[A: Semigroup]: Semigroup[SyncIO[A]] = new SyncIOSemigroup[A]
+  implicit def syncIoSemigroup[A: Semigroup]: Semigroup[SyncIO[A]] = new SyncIOSemigroup[A]
 }

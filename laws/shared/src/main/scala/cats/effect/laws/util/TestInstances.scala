@@ -103,8 +103,10 @@ trait TestInstances {
   /** Defines equality for `SyncIO` references. */
   implicit def eqSyncIO[A](implicit A: Eq[A]): Eq[SyncIO[A]] =
     new Eq[SyncIO[A]] {
-      def eqv(x: SyncIO[A], y: SyncIO[A]): Boolean =
-        A.eqv(x.unsafeRunSync(), y.unsafeRunSync())
+      def eqv(x: SyncIO[A], y: SyncIO[A]): Boolean = {
+        val eqETA = cats.kernel.instances.either.catsStdEqForEither(eqThrowable, A)
+        eqETA.eqv(x.attempt.unsafeRunSync(), y.attempt.unsafeRunSync())
+      }
     }
 }
 

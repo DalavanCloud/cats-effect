@@ -392,7 +392,7 @@ class IOTests extends BaseTestsSuite {
   testAsync("sync.to[IO] is stack-safe") { implicit ec =>
     // Override default generator to only generate
     // synchronous instances that are stack-safe
-    implicit val arbIO = Arbitrary(genSyncIO[Int])
+    implicit val arbIO = Arbitrary(genSyncIO[Int].map(_.toIO))
 
     check { (io: IO[Int]) =>
       repeatedTransformLoop(10000, io) <-> io
