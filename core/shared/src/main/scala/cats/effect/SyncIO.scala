@@ -372,4 +372,25 @@ object SyncIO {
    * the throwable if it exists.
    */
   def fromEither[A](e: Either[Throwable, A]): SyncIO[A] = new SyncIO(IO.fromEither(e))
+
+  implicit val syncIOSync: Sync[SyncIO] = new Sync[SyncIO] with StackSafeMonad[SyncIO] {
+    def pure[A](x: A): cats.effect.SyncIO[A] = SyncIO.pure(x)
+
+    def handleErrorWith[A](fa: cats.effect.SyncIO[A])(f: Throwable => cats.effect.SyncIO[A]): cats.effect.SyncIO[A] =
+      fa.handleErrorWith(f)
+
+    def raiseError[A](e: Throwable): cats.effect.SyncIO[A] =
+      SyncIO.raiseError(e)
+
+    def bracketCase[A, B](acquire: cats.effect.SyncIO[A])(use: A => cats.effect.SyncIO[B])(release: (A, cats.effect.ExitCase[Throwable]) => cats.effect.SyncIO[Unit]): cats.effect.SyncIO[B] =
+      acquire.bracketCase(use)(release)
+
+    def flatMap[A, B](fa: cats.effect.SyncIO[A])(f: A => cats.effect.SyncIO[B]): cats.effect.SyncIO[B] =
+      fa.flatMap(f)
+
+    def suspend[A](thunk: => cats.effect.SyncIO[A]): cats.effect.SyncIO[A] =
+      SyncIO.suspend(thunk)
+
+
+  }
 }
