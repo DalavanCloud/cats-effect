@@ -42,7 +42,7 @@ trait ConcurrentEffect[F[_]] extends Concurrent[F] with Effect[F] {
   /**
    * Evaluates `F[_]` with the ability to cancel it.
    *
-   * The returned `IO[CancelToken[F]]` is a suspended cancelable
+   * The returned `SyncIO[CancelToken[F]]` is a suspended cancelable
    * action that can be used to cancel the running computation.
    *
    * [[CancelToken]] is nothing more than an alias for `F[Unit]`
@@ -51,11 +51,7 @@ trait ConcurrentEffect[F[_]] extends Concurrent[F] with Effect[F] {
    *
    * Contract:
    *
-   *  - the evaluation of the returned `IO` value is guaranteed
-   *    to have synchronous execution, therefore it can be
-   *    evaluated via [[IO.unsafeRunSync]]
-   *  - the evaluation of the suspended [[CancelToken]] however
-   *    must be asynchronous
+   *  - the evaluation of the suspended [[CancelToken]] must be asynchronous
    */
   def runCancelable[A](fa: F[A])(cb: Either[Throwable, A] => IO[Unit]): SyncIO[CancelToken[F]]
 

@@ -46,30 +46,23 @@ trait Effect[F[_]] extends Async[F] {
 
   /**
    * Evaluates `F[_]`, with the effect of starting the run-loop
-   * being suspended in the `IO` context.
+   * being suspended in the `SyncIO` context.
    *
-   * Note that evaluating the returned `IO[Unit]` is guaranteed
-   * to execute immediately:
    * {{{
    *   val io = F.runAsync(fa)(cb)
-   *
-   *   // For triggering actual execution, guaranteed to be
-   *   // immediate because it doesn't wait for the result
+   *   // Running io results in evaluation of `fa` starting 
    *   io.unsafeRunSync
    * }}}
    */
   def runAsync[A](fa: F[A])(cb: Either[Throwable, A] => IO[Unit]): SyncIO[Unit]
 
   /**
-   * Returns an `IO` which runs `fa` until it reaches an asynchronous
+   * Returns a `SyncIO` which runs `fa` until it reaches an asynchronous
    * boundary.
    *
    * If it is possible to run the entirety of `fa` synchronously, its
    * result is returned wrapped in a `Right`. Otherwise, the
    * continuation (asynchronous) effect is returned in a `Left`.
-   *
-   * Note that evaluating the returned `IO` is guaranteed
-   * to execute immediately.
    */
   def runSyncStep[A](fa: F[A]): SyncIO[Either[F[A], A]]
 
