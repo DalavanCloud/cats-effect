@@ -42,7 +42,7 @@ trait EffectLaws[F[_]] extends AsyncLaws[F] {
 
   def runAsyncIgnoresErrorInHandler[A](e: Throwable) = {
     val fa = F.pure(())
-    F.runAsync(fa)(_ => IO.raiseError(e)).toIO <-> SyncIO.pure(()).toIO
+    F.runAsync(fa)(_ => IO.raiseError(e)).toIO <-> IO.pure(())
   }
 
   def runSyncStepSuspendPureProducesTheSame[A](fa: F[A]) = {

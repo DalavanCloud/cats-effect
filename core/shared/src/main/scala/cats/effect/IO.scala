@@ -86,7 +86,7 @@ sealed abstract class IO[+A] extends internals.IOBinaryCompat[A] {
   import IO._
 
   /**
-   * Functor map on `IO`. Given a mapping functions, it transforms the
+   * Functor map on `IO`. Given a mapping function, it transforms the
    * value produced by the source, while keeping the `IO` context.
    *
    * Any exceptions thrown within the function will be caught and
@@ -1181,8 +1181,8 @@ object IO extends IOInstances {
     }
 
   /**
-   * Lifts an Either[Throwable, A] into the IO[A] context raising the throwable
-   * if it exists.
+   * Lifts an `Either[Throwable, A]` into the `IO[A]` context, raising
+   * the throwable if it exists.
    */
   def fromEither[A](e: Either[Throwable, A]): IO[A] =
     e match {
